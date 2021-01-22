@@ -2,6 +2,7 @@
 " TODO: add all filetype map
 let s:filetype_map_dict = {
 \   'js': 'javascript',
+\   'jquery': 'javascript',
 \}
 
 
@@ -17,8 +18,16 @@ function! s:new_buffer(filetype)
 
 function! s:fill(cmd)
   setlocal modifiable
+  silent normal! gg"_dG
   silent execute 'read' escape('!'.a:cmd, '%')
+  normal! gg"_dd
   setlocal nomodifiable
+:endfunction
+
+function! s:get_cmd(argument, options, alt)
+  let curl_cmd = get(g:, 'cs_curl_cmd', 'curl --silent')
+  let cheatsheet_url = get(g:, 'cs_cheatsheet_url', 'https://cht.sh')
+  return join([curl_cmd, cheatsheet_url.'/'.a:argument.'/'.a:alt.'?'.a:options])
 :endfunction
 
 function! s:filetype_map(filetype)
@@ -31,53 +40,85 @@ function! s:filetype_map(filetype)
 
 " Plugin development
 function! cs#cheatsheet(...)
-  let s:argument = substitute(join(a:000, '+'), '\s\+', '+', 'g')
-  let s:argument = substitute(s:argument, '/*', '/', '')
-  let s:argument = substitute(s:argument, '^/', '', '')
+  " TODO: maybe not use scope since not use actually
+  let argument = substitute(join(a:000, '+'), '\s\+', '+', 'g')
+  let argument = substitute(argument, '/*', '/', '')
+  let argument = substitute(argument, '^/', '', '')
+  let argument = substitute(argument, '/$', '', '')
 
   " get filetype
-  if stridx(s:argument, '/') < 0
-    let s:filetype = 'bash'
+  if stridx(argument, '/') < 0
+    let filetype = 'bash'
   else
-    let s:filetype = substitute(s:argument, '/[^ ]*$', '', '')
+    let filetype = substitute(argument, '/[^ ]*$', '', '')
   endif
-  let s:filetype = s:filetype_map(s:filetype)
+  let filetype = s:filetype_map(filetype)
 
   " get options
-  if stridx(s:argument, '?') < 0
-    let s:options = 'T'
+  if stridx(argument, '?') < 0
+    let options = 'T'
   else
-    let s:options = substitute(s:argument, '[^?]*?', '', '')
-    if stridx(s:options, '?') >= 0
+    let options = substitute(argument, '[^?]*?', '', '')
+    if stridx(options, '?') >= 0
       call s:warn('Invalid cheat.sh options')
       return
     endif
     " force text only
-    if stridx(s:options, 'T') < 0
-      let s:options = s:options.'T'
+    if stridx(options, 'T') < 0
+      let options = options.'T'
     endif
 
-    let s:argument = substitute(s:argument, '?[^ ]*$', '', '')
+    let argument = substitute(argument, '?[^ ]*$', '', '')
   endif
   " TODO: validate options
 
-  call s:get_cheatsheet(s:filetype, s:argument, s:options)
+  let alt = str2nr(matchstr(argument,'/\zs[0-9\-]\+\ze$'), 10)
+
+  call s:new_buffer(filetype)
+  call s:get_cheatsheet(argument, options, alt)
 :endfunction
 
-function! s:get_cheatsheet(filetype, argument, options)
-  let curl_cmd = 'curl --silent'
-  let cheatsheet_url = 'https://cht.sh'
-  if exists('g:cs_curl_cmd')
-    let curl_cmd = g:cs_curl_cmd
-  endif
-  if exists('g:cs_cheatsheet_url')
-    let cheatsheet_url = g:cs_cheatsheet_url
-  endif
+function! s:get_cheatsheet(argument, options, alt)
+  let bufname = 'CS '.a:argument.' ['.a:alt.']'
+  let cmd = s:get_cmd(a:argument, a:options, a:alt)
 
-  let cmd = join([curl_cmd, cheatsheet_url.'/'.a:argument.'?'.a:options])
-
-  call s:new_buffer(a:filetype)
+  silent execute 'file' fnameescape(bufname)
   call s:fill(cmd)
+  call s:post_setup(a:argument, a:options, a:alt)
+:endfunction
+
+function! s:post_setup(argument, options, alt)
+  call s:maps()
+  " mark buffer
+  let b:cs_buffer = 1
+  " save buffer data
+  let b:cs_argument = a:argument
+  let b:cs_options = a:options
+  let b:cs_alt = a:alt
+:endfunction
+
+function! s:maps()
+  if exists('b:cs_buffer')
+    return
+  endif
+  nnoremap <silent> <buffer> > :call cs#next()<cr>
+  nnoremap <silent> <buffer> < :call cs#prev()<cr>
+:endfunction
+
+" Buffer actions
+
+function! cs#next()
+  if !exists('b:cs_buffer')
+    return
+  endif
+  call s:get_cheatsheet(b:cs_argument, b:cs_options, b:cs_alt + 1)
+:endfunction
+
+function! cs#prev()
+  if !exists('b:cs_buffer')
+    return
+  endif
+  call s:get_cheatsheet(b:cs_argument, b:cs_options, b:cs_alt - 1)
 :endfunction
 
 " command! -nargs=+ CS silent cs#cheatsheet! <args>
