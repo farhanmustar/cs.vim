@@ -1,10 +1,9 @@
 " TODO: move some to autoload for lazy loading
-" TODO: add all filetype map
 let s:filetype_map_dict = {
 \   'js': 'javascript',
 \   'jquery': 'javascript',
+\   'git': 'markdown',
 \}
-
 
 function! s:warn(message)
   echohl WarningMsg | echom a:message | echohl None
