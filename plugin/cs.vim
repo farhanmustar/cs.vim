@@ -1,9 +1,11 @@
 " TODO: move some to autoload for lazy loading
 let s:filetype_map_dict = {
+\   '/': 'markdown',
 \   'js': 'javascript',
 \   'jquery': 'javascript',
 \   'git': 'markdown',
 \}
+let g:filetype_map_dict = get(g:, 'filetype_map_dict', {})
 
 " Main function
 
@@ -15,7 +17,7 @@ function! cs#cheatsheet(...)
 
   " get filetype
   if stridx(argument, '/') < 0
-    let filetype = 'markdown'
+    let filetype = '/'
   else
     let filetype = substitute(argument, '/[^ ]*$', '', '')
   endif
@@ -110,7 +112,9 @@ function! s:warn(message)
 :endfunction
 
 function! s:filetype_map(filetype)
-  if has_key(s:filetype_map_dict, a:filetype)
+  if has_key(g:filetype_map_dict, a:filetype)
+    return g:filetype_map_dict[a:filetype]
+  elseif has_key(s:filetype_map_dict, a:filetype)
     return s:filetype_map_dict[a:filetype]
   else
     return a:filetype
