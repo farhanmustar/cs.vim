@@ -5,41 +5,9 @@ let s:filetype_map_dict = {
 \   'git': 'markdown',
 \}
 
-function! s:warn(message)
-  echohl WarningMsg | echom a:message | echohl None
-:endfunction
+" Main function
 
-function! s:new_buffer(filetype)
-  execute 'below new'
-  setlocal buftype=nofile bufhidden=wipe noswapfile nomodeline
-  execute 'set ft='.a:filetype
-:endfunction
-
-function! s:fill(cmd)
-  setlocal modifiable
-  silent normal! gg"_dG
-  silent execute 'read' escape('!'.a:cmd, '%')
-  normal! gg"_dd
-  setlocal nomodifiable
-:endfunction
-
-function! s:get_cmd(argument, options, alt)
-  let curl_cmd = get(g:, 'cs_curl_cmd', 'curl --silent')
-  let cheatsheet_url = get(g:, 'cs_cheatsheet_url', 'https://cht.sh')
-  return join([curl_cmd, cheatsheet_url.'/'.a:argument.'/'.a:alt.'?'.a:options])
-:endfunction
-
-function! s:filetype_map(filetype)
-  if has_key(s:filetype_map_dict, a:filetype)
-    return s:filetype_map_dict[a:filetype]
-  else
-    return a:filetype
-  endif
-:endfunction
-
-" Plugin development
 function! cs#cheatsheet(...)
-  " TODO: maybe not use scope since not use actually
   let argument = substitute(join(a:000, '+'), '\s\+', '+', 'g')
   let argument = substitute(argument, '/*', '/', '')
   let argument = substitute(argument, '^/', '', '')
@@ -77,33 +45,6 @@ function! cs#cheatsheet(...)
   call s:get_cheatsheet(argument, options, alt)
 :endfunction
 
-function! s:get_cheatsheet(argument, options, alt)
-  let bufname = 'CS '.a:argument.' ['.a:alt.']'
-  let cmd = s:get_cmd(a:argument, a:options, a:alt)
-
-  silent execute 'file' fnameescape(bufname)
-  call s:fill(cmd)
-  call s:post_setup(a:argument, a:options, a:alt)
-:endfunction
-
-function! s:post_setup(argument, options, alt)
-  call s:maps()
-  " mark buffer
-  let b:cs_buffer = 1
-  " save buffer data
-  let b:cs_argument = a:argument
-  let b:cs_options = a:options
-  let b:cs_alt = a:alt
-:endfunction
-
-function! s:maps()
-  if exists('b:cs_buffer')
-    return
-  endif
-  nnoremap <silent> <buffer> > :call cs#next()<cr>
-  nnoremap <silent> <buffer> < :call cs#prev()<cr>
-:endfunction
-
 " Buffer actions
 
 function! cs#next()
@@ -118,6 +59,71 @@ function! cs#prev()
     return
   endif
   call s:get_cheatsheet(b:cs_argument, b:cs_options, b:cs_alt - 1)
+:endfunction
+
+" Sub functions
+
+function! s:new_buffer(filetype)
+  execute 'below new'
+  setlocal buftype=nofile bufhidden=wipe noswapfile nomodeline
+  execute 'set ft='.a:filetype
+:endfunction
+
+function! s:get_cheatsheet(argument, options, alt)
+  let bufname = 'CS '.a:argument.' ['.a:alt.']'
+  let cmd = s:get_cmd(a:argument, a:options, a:alt)
+
+  silent execute 'file' fnameescape(bufname)
+  call s:fill(cmd)
+  call s:post_setup(a:argument, a:options, a:alt)
+:endfunction
+
+function! s:get_cmd(argument, options, alt)
+  let curl_cmd = get(g:, 'cs_curl_cmd', 'curl --silent')
+  let cheatsheet_url = get(g:, 'cs_cheatsheet_url', 'https://cht.sh')
+  return join([curl_cmd, cheatsheet_url.'/'.a:argument.'/'.a:alt.'?'.a:options])
+:endfunction
+
+function! s:fill(cmd)
+  setlocal modifiable
+  silent normal! gg"_dG
+  silent execute 'read' escape('!'.a:cmd, '%')
+  normal! gg"_dd
+  setlocal nomodifiable
+:endfunction
+
+function! s:post_setup(argument, options, alt)
+  call s:maps()
+  " mark buffer
+  let b:cs_buffer = 1
+  " save buffer data
+  let b:cs_argument = a:argument
+  let b:cs_options = a:options
+  let b:cs_alt = a:alt
+:endfunction
+
+" Helper function
+
+function! s:warn(message)
+  echohl WarningMsg | echom a:message | echohl None
+:endfunction
+
+function! s:filetype_map(filetype)
+  if has_key(s:filetype_map_dict, a:filetype)
+    return s:filetype_map_dict[a:filetype]
+  else
+    return a:filetype
+  endif
+:endfunction
+
+" CS binding
+
+function! s:maps()
+  if exists('b:cs_buffer')
+    return
+  endif
+  nnoremap <silent> <buffer> > :call cs#next()<cr>
+  nnoremap <silent> <buffer> < :call cs#prev()<cr>
 :endfunction
 
 " command! -nargs=+ CS silent cs#cheatsheet! <args>
