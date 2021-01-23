@@ -15,7 +15,7 @@ function! cs#cheatsheet(...)
 
   " get filetype
   if stridx(argument, '/') < 0
-    let filetype = 'bash'
+    let filetype = 'markdown'
   else
     let filetype = substitute(argument, '/[^ ]*$', '', '')
   endif
@@ -73,6 +73,7 @@ function! s:get_cheatsheet(argument, options, alt)
   let bufname = 'CS '.a:argument.' ['.a:alt.']'
   let cmd = s:get_cmd(a:argument, a:options, a:alt)
 
+  echo 'CS fetching data...'
   silent execute 'file' fnameescape(bufname)
   call s:fill(cmd)
   call s:post_setup(a:argument, a:options, a:alt)
@@ -81,7 +82,7 @@ function! s:get_cheatsheet(argument, options, alt)
 function! s:get_cmd(argument, options, alt)
   let curl_cmd = get(g:, 'cs_curl_cmd', 'curl --silent')
   let cheatsheet_url = get(g:, 'cs_cheatsheet_url', 'https://cht.sh')
-  return join([curl_cmd, cheatsheet_url.'/'.a:argument.'/'.a:alt.'?'.a:options])
+  return join([curl_cmd, cheatsheet_url.'/'.a:argument.(a:alt == 0 ? '' : '/'.a:alt).'?'.a:options])
 :endfunction
 
 function! s:fill(cmd)
@@ -126,5 +127,4 @@ function! s:maps()
   nnoremap <silent> <buffer> < :call cs#prev()<cr>
 :endfunction
 
-" command! -nargs=+ CS silent cs#cheatsheet! <args>
 command! -nargs=+ CS call cs#cheatsheet(<f-args>)
