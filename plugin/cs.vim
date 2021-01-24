@@ -16,6 +16,81 @@ function! cs#cheatsheet(...) abort
   call s:get_cheatsheet(data['argument'], data['options'], data['alt'])
 :endfunction
 
+" Buffer actions
+
+function! cs#next() abort
+  if !exists('b:cs_buffer')
+    return
+  endif
+  call s:get_cheatsheet(b:cs_argument, b:cs_options, b:cs_alt + 1)
+:endfunction
+
+function! cs#prev() abort
+  if !exists('b:cs_buffer')
+    return
+  endif
+  call s:get_cheatsheet(b:cs_argument, b:cs_options, b:cs_alt - 1)
+:endfunction
+
+" Command autocomplete
+
+function! cs#complete(arg, line, cur) abort
+  let argument = substitute(a:line, '^CS ', '', '')
+  let is_empty_complete = match(argument, '/$') >= 0
+  let is_start_with_slash = match(argument, '^/') >= 0
+  let data = s:extract_argument(argument)
+  if !has_key(data, 'argument') ||
+        \!has_key(data, 'alt') ||
+        \stridx(argument, '?') >= 0 ||
+        \stridx(data['argument'], '+') >= 0 ||
+        \data['alt'] > 0
+    return ''
+  elseif data['argument'] == ''
+    let cmd = s:get_cmd(':list', 'T', '0')
+    echo ':CS '.(is_start_with_slash ? '/' : '').'...'
+    let result = s:cached_system(cmd)
+    if is_start_with_slash
+      " need to match current str in cmdline
+      let result = substitute(result, '^', '/', '')
+      let result = substitute(result, '\zs\n\ze[^$]', '\n/', 'g')
+    endif
+    return result
+  elseif stridx(data['argument'], '/') < 0 && !is_empty_complete
+    echo ':CS '.(is_start_with_slash ? '/' : '').data['argument'].'...'
+    let cmd = s:get_cmd(':list', 'T', '0')
+    let result = s:cached_system(cmd)
+    if is_start_with_slash
+      " need to match current str in cmdline
+      let result = substitute(result, '^', '/', '')
+      let result = substitute(result, '\zs\n\ze[^$]', '\n/', 'g')
+    endif
+    return result
+  elseif is_empty_complete
+    echo ':CS '.(is_start_with_slash ? '/' : '').data['argument'].'/...'
+    let cmd = s:get_cmd(data['argument'].'/:list', 'T', '0')
+    let result = s:cached_system(cmd)
+
+    " need to match current str in cmdline
+    let result = substitute(result, '^', (is_start_with_slash ? '/' : '').data['argument'].'/', '')
+    let result = substitute(result, '\zs\n\ze[^$]', '\n'.(is_start_with_slash ? '/' : '').data['argument'].'/', 'g')
+    return result
+  else
+    echo ':CS '.(is_start_with_slash ? '/' : '').data['argument'].'...'
+    let cmd_argument = substitute(data['argument'], '[^/]*$', '', '')
+    let start = matchstr(data['argument'], '[^/]*$')
+    let cmd = s:get_cmd(cmd_argument.':list', 'T', '0')
+    let result = s:cached_system(cmd)
+
+    " need to match current str in cmdline
+    let result = substitute(result, '^', (is_start_with_slash ? '/' : '').cmd_argument, '')
+    let result = substitute(result, '\zs\n\ze[^$]', '\n'.(is_start_with_slash ? '/' : '').cmd_argument, 'g')
+    return result
+  endif
+  return ''
+:endfunction
+
+" Sub functions
+
 function! s:extract_argument(...) abort
   let argument = substitute(join(a:000, '+'), '\s\+', '+', 'g')
   let argument = substitute(argument, '/*', '/', '')
@@ -59,80 +134,6 @@ function! s:extract_argument(...) abort
         \ 'options': options,
         \}
 :endfunction
-
-" Buffer actions
-
-function! cs#next() abort
-  if !exists('b:cs_buffer')
-    return
-  endif
-  call s:get_cheatsheet(b:cs_argument, b:cs_options, b:cs_alt + 1)
-:endfunction
-
-function! cs#prev() abort
-  if !exists('b:cs_buffer')
-    return
-  endif
-  call s:get_cheatsheet(b:cs_argument, b:cs_options, b:cs_alt - 1)
-:endfunction
-
-function! cs#complete(arg, line, cur) abort
-  " TODO: should we cache the resulting list? configurable? cache last 10 url...
-  let argument = substitute(a:line, '^CS ', '', '')
-  let is_empty_complete = match(argument, '/$') >= 0
-  let is_start_with_slash = match(argument, '^/') >= 0
-  let data = s:extract_argument(argument)
-  if !has_key(data, 'argument') ||
-        \!has_key(data, 'alt') ||
-        \stridx(argument, '?') >= 0 ||
-        \stridx(data['argument'], '+') >= 0 ||
-        \data['alt'] > 0
-    return ''
-  elseif data['argument'] == ''
-    let cmd = s:get_cmd(':list', 'T', '0')
-    echo ':CS '.(is_start_with_slash ? '/' : '').'...'
-    let result = system(cmd)
-    if is_start_with_slash
-      " need to match current str in cmdline
-      let result = substitute(result, '^', '/', '')
-      let result = substitute(result, '\zs\n\ze[^$]', '\n/', 'g')
-    endif
-    return result
-  elseif stridx(data['argument'], '/') < 0 && !is_empty_complete
-    echo ':CS '.(is_start_with_slash ? '/' : '').data['argument'].'...'
-    let cmd = s:get_cmd(':list', 'T', '0')
-    let result = system(cmd)
-    if is_start_with_slash
-      " need to match current str in cmdline
-      let result = substitute(result, '^', '/', '')
-      let result = substitute(result, '\zs\n\ze[^$]', '\n/', 'g')
-    endif
-    return result
-  elseif is_empty_complete
-    echo ':CS '.(is_start_with_slash ? '/' : '').data['argument'].'/...'
-    let cmd = s:get_cmd(data['argument'].'/:list', 'T', '0')
-    let result = system(cmd)
-
-    " need to match current str in cmdline
-    let result = substitute(result, '^', (is_start_with_slash ? '/' : '').data['argument'].'/', '')
-    let result = substitute(result, '\zs\n\ze[^$]', '\n'.(is_start_with_slash ? '/' : '').data['argument'].'/', 'g')
-    return result
-  else
-    echo ':CS '.(is_start_with_slash ? '/' : '').data['argument'].'...'
-    let cmd_argument = substitute(data['argument'], '[^/]*$', '', '')
-    let start = matchstr(data['argument'], '[^/]*$')
-    let cmd = s:get_cmd(cmd_argument.':list', 'T', '0')
-    let result = system(cmd)
-
-    " need to match current str in cmdline
-    let result = substitute(result, '^', (is_start_with_slash ? '/' : '').cmd_argument, '')
-    let result = substitute(result, '\zs\n\ze[^$]', '\n'.(is_start_with_slash ? '/' : '').cmd_argument, 'g')
-    return result
-  endif
-  return ''
-:endfunction
-
-" Sub functions
 
 function! s:new_buffer(syntax) abort
   execute 'below new'
@@ -188,6 +189,32 @@ function! s:syntax_map(syntax)
   else
     return a:syntax
   endif
+:endfunction
+
+function! s:cached_system(cmd) abort
+  let s:system_cache_list = get(s:, 'system_cache_list', [])
+  let s:system_cache_data = get(s:, 'system_cache_data', {})
+  if has_key(s:system_cache_data, a:cmd)
+    call remove(s:system_cache_list, index(s:system_cache_list, a:cmd))
+    let s:system_cache_list += [a:cmd]
+    return s:system_cache_data[a:cmd]
+  endif
+  let result = system(a:cmd)
+  if empty(trim(result))
+    return ''
+  endif
+
+  let s:system_cache_list += [a:cmd]
+  let s:system_cache_data[a:cmd] = result
+
+  " cache limit = 5
+  if len(s:system_cache_list) > 5
+    let del_key = s:system_cache_list[0]
+    let s:system_cache_list = s:system_cache_list[1:]
+    call remove(s:system_cache_data, del_key)
+  endif
+
+  return result
 :endfunction
 
 " CS binding
