@@ -10,6 +10,13 @@ let g:syntax_map_dict = get(g:, 'syntax_map_dict', {})
 " Main function
 
 function! cs#cheatsheet(...) abort
+  let data = call('s:extract_argument', a:000)
+
+  call s:new_buffer(data['syntax'])
+  call s:get_cheatsheet(data['argument'], data['options'], data['alt'])
+:endfunction
+
+function! s:extract_argument(...) abort
   let argument = substitute(join(a:000, '+'), '\s\+', '+', 'g')
   let argument = substitute(argument, '/*', '/', '')
   let argument = substitute(argument, '^/', '', '')
@@ -41,10 +48,16 @@ function! cs#cheatsheet(...) abort
   endif
   " TODO: validate options
 
+  "get alt number
   let alt = str2nr(matchstr(argument,'/\zs[0-9\-]\+\ze$'), 10)
+  let argument = substitute(argument, '/[0-9\-]\+$', '', '')
 
-  call s:new_buffer(syntax)
-  call s:get_cheatsheet(argument, options, alt)
+  return {
+        \ 'alt': alt,
+        \ 'argument': argument,
+        \ 'syntax': syntax,
+        \ 'options': options,
+        \}
 :endfunction
 
 " Buffer actions
@@ -62,6 +75,65 @@ function! cs#prev() abort
   endif
   call s:get_cheatsheet(b:cs_argument, b:cs_options, b:cs_alt - 1)
 :endfunction
+
+function! cs#complete(arg, line, cur) abort
+  " TODO: should we cache the resulting list? configurable?
+  " TODO: consider user initially put /
+  let argument = substitute(a:line, '^CS ', '', '')
+  let is_empty_complete = match(argument, '/$') >= 0
+  let data = s:extract_argument(argument)
+  if !has_key(data, 'argument') ||
+        \!has_key(data, 'alt') ||
+        \stridx(argument, '?') >= 0 ||
+        \stridx(data['argument'], '+') >= 0 ||
+        \data['alt'] > 0
+    return ''
+  elseif data['argument'] == ''
+    let cmd = s:get_cmd(':list', 'T', '0')
+    echo ':CS ...'
+    return system(cmd)
+  elseif stridx(data['argument'], '/') < 0 && !is_empty_complete
+    echo ':CS '.data['argument'].'...'
+    let cmd = s:get_cmd(':list', 'T', '0')
+    return system(cmd)
+    " let result = system(cmd)
+    " return s:multiline_str_startswith(result, data['argument'])
+  elseif is_empty_complete
+    echo ':CS '.data['argument'].'/...'
+    let cmd = s:get_cmd(data['argument'].'/:list', 'T', '0')
+    let result = system(cmd)
+
+    " need to match current str in cmdline
+    let result = substitute(result, '^', data['argument'].'/', '')
+    let result = substitute(result, '\zs\n\ze[^$]', '\n'.data['argument'].'/', 'g')
+    echom result
+    return result
+  else
+    echo ':CS '.data['argument'].'...'
+    let cmd_argument = substitute(data['argument'], '[^/]*$', '', '')
+    let start = matchstr(data['argument'], '[^/]*$')
+    let cmd = s:get_cmd(cmd_argument.':list', 'T', '0')
+    let result = system(cmd)
+    " let result = s:multiline_str_startswith(result, start)
+
+    " need to match current str in cmdline
+    let result = substitute(result, '^', cmd_argument, '')
+    let result = substitute(result, '\zs\n\ze[^$]', '\n'.cmd_argument, 'g')
+    return result
+  endif
+  return ''
+:endfunction
+
+function! s:multiline_str_startswith(expr, start) abort
+  " TODO: fix how to include both first line and first string char.
+  let escaped = s:escape_regex(a:start)
+  let match = substitute(a:expr, '^\('.escaped.'\)\@![^\n]*', '', 'g')
+  return substitute(match, '\n\('.escaped.'\)\@![^\n]*', '', 'g')
+:endfunction
+
+function! s:escape_regex(str)
+  return escape(a:str, '^$.*?/\[]')
+endfunction
 
 " Sub functions
 
@@ -131,4 +203,4 @@ function! s:maps()
   nnoremap <silent> <buffer> < :call cs#prev()<cr>
 :endfunction
 
-command! -nargs=+ CS call cs#cheatsheet(<f-args>)
+command! -nargs=+ -complete=custom,cs#complete CS call cs#cheatsheet(<f-args>)
