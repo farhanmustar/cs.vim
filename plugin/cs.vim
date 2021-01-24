@@ -1,9 +1,10 @@
 " TODO: move some to autoload for lazy loading
 let s:syntax_map_dict = {
 \   '/': 'markdown',
-\   'js': 'javascript',
-\   'jquery': 'javascript',
 \   'git': 'markdown',
+\   'jquery': 'javascript',
+\   'js': 'javascript',
+\   'vimscript': 'vim',
 \}
 let g:syntax_map_dict = get(g:, 'syntax_map_dict', {})
 
