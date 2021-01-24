@@ -121,7 +121,6 @@ function! s:extract_argument(...) abort
 
     let argument = substitute(argument, '?[^ ]*$', '', '')
   endif
-  " TODO: validate options
 
   "get alt number
   let alt = str2nr(matchstr(argument,'/\zs[0-9\-]\+\ze$'), 10)
