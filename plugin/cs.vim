@@ -1,11 +1,11 @@
 " TODO: move some to autoload for lazy loading
-let s:filetype_map_dict = {
+let s:syntax_map_dict = {
 \   '/': 'markdown',
 \   'js': 'javascript',
 \   'jquery': 'javascript',
 \   'git': 'markdown',
 \}
-let g:filetype_map_dict = get(g:, 'filetype_map_dict', {})
+let g:syntax_map_dict = get(g:, 'syntax_map_dict', {})
 
 " Main function
 
@@ -15,13 +15,13 @@ function! cs#cheatsheet(...) abort
   let argument = substitute(argument, '^/', '', '')
   let argument = substitute(argument, '/$', '', '')
 
-  " get filetype
+  " get syntax
   if stridx(argument, '/') < 0
-    let filetype = '/'
+    let syntax = '/'
   else
-    let filetype = substitute(argument, '/[^ ]*$', '', '')
+    let syntax = substitute(argument, '/[^ ]*$', '', '')
   endif
-  let filetype = s:filetype_map(filetype)
+  let syntax = s:syntax_map(syntax)
 
   " get options
   if stridx(argument, '?') < 0
@@ -43,7 +43,7 @@ function! cs#cheatsheet(...) abort
 
   let alt = str2nr(matchstr(argument,'/\zs[0-9\-]\+\ze$'), 10)
 
-  call s:new_buffer(filetype)
+  call s:new_buffer(syntax)
   call s:get_cheatsheet(argument, options, alt)
 :endfunction
 
@@ -65,10 +65,10 @@ function! cs#prev() abort
 
 " Sub functions
 
-function! s:new_buffer(filetype) abort
+function! s:new_buffer(syntax) abort
   execute 'below new'
   setlocal buftype=nofile bufhidden=wipe noswapfile nomodeline
-  execute 'set ft='.a:filetype
+  execute 'set syntax='.a:syntax
 :endfunction
 
 function! s:get_cheatsheet(argument, options, alt) abort
@@ -111,13 +111,13 @@ function! s:warn(message)
   echohl WarningMsg | echom a:message | echohl None
 :endfunction
 
-function! s:filetype_map(filetype)
-  if has_key(g:filetype_map_dict, a:filetype)
-    return g:filetype_map_dict[a:filetype]
-  elseif has_key(s:filetype_map_dict, a:filetype)
-    return s:filetype_map_dict[a:filetype]
+function! s:syntax_map(syntax)
+  if has_key(g:syntax_map_dict, a:syntax)
+    return g:syntax_map_dict[a:syntax]
+  elseif has_key(s:syntax_map_dict, a:syntax)
+    return s:syntax_map_dict[a:syntax]
   else
-    return a:filetype
+    return a:syntax
   endif
 :endfunction
 
