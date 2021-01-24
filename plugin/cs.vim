@@ -9,7 +9,7 @@ let g:filetype_map_dict = get(g:, 'filetype_map_dict', {})
 
 " Main function
 
-function! cs#cheatsheet(...)
+function! cs#cheatsheet(...) abort
   let argument = substitute(join(a:000, '+'), '\s\+', '+', 'g')
   let argument = substitute(argument, '/*', '/', '')
   let argument = substitute(argument, '^/', '', '')
@@ -49,14 +49,14 @@ function! cs#cheatsheet(...)
 
 " Buffer actions
 
-function! cs#next()
+function! cs#next() abort
   if !exists('b:cs_buffer')
     return
   endif
   call s:get_cheatsheet(b:cs_argument, b:cs_options, b:cs_alt + 1)
 :endfunction
 
-function! cs#prev()
+function! cs#prev() abort
   if !exists('b:cs_buffer')
     return
   endif
@@ -65,29 +65,29 @@ function! cs#prev()
 
 " Sub functions
 
-function! s:new_buffer(filetype)
+function! s:new_buffer(filetype) abort
   execute 'below new'
   setlocal buftype=nofile bufhidden=wipe noswapfile nomodeline
   execute 'set ft='.a:filetype
 :endfunction
 
-function! s:get_cheatsheet(argument, options, alt)
+function! s:get_cheatsheet(argument, options, alt) abort
   let bufname = 'CS '.a:argument.' ['.a:alt.']'
   let cmd = s:get_cmd(a:argument, a:options, a:alt)
 
-  echo 'CS fetching data...'
+  echo 'CS fetching data... ['.cmd.']'
   silent execute 'file' fnameescape(bufname)
   call s:fill(cmd)
   call s:post_setup(a:argument, a:options, a:alt)
 :endfunction
 
-function! s:get_cmd(argument, options, alt)
+function! s:get_cmd(argument, options, alt) abort
   let curl_cmd = get(g:, 'cs_curl_cmd', 'curl --silent')
   let cheatsheet_url = get(g:, 'cs_cheatsheet_url', 'https://cht.sh')
   return join([curl_cmd, cheatsheet_url.'/'.a:argument.(a:alt == 0 ? '' : '/'.a:alt).'?'.a:options])
 :endfunction
 
-function! s:fill(cmd)
+function! s:fill(cmd) abort
   setlocal modifiable
   silent normal! gg"_dG
   silent execute 'read' escape('!'.a:cmd, '%')
@@ -95,7 +95,7 @@ function! s:fill(cmd)
   setlocal nomodifiable
 :endfunction
 
-function! s:post_setup(argument, options, alt)
+function! s:post_setup(argument, options, alt) abort
   call s:maps()
   " mark buffer
   let b:cs_buffer = 1
