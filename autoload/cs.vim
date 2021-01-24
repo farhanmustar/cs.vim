@@ -1,5 +1,6 @@
 let g:syntax_map_dict = get(g:, 'syntax_map_dict', {})
-let g:cs_curl_cmd = get(g:, 'cs_curl_cmd', 'curl --silent')
+let g:cs_curl_max_time = get(g:, 'cs_curl_max_time', 10)
+let g:cs_curl_cmd = get(g:, 'cs_curl_cmd', 'curl --silent --max-time '.g:cs_curl_max_time)
 let g:cs_cheatsheet_url = get(g:, 'cs_cheatsheet_url', 'https://cht.sh')
 
 let s:syntax_map_dict = {
