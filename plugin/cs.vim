@@ -77,10 +77,10 @@ function! cs#prev() abort
 :endfunction
 
 function! cs#complete(arg, line, cur) abort
-  " TODO: should we cache the resulting list? configurable?
-  " TODO: consider user initially put /
+  " TODO: should we cache the resulting list? configurable? cache last 10 url...
   let argument = substitute(a:line, '^CS ', '', '')
   let is_empty_complete = match(argument, '/$') >= 0
+  let is_start_with_slash = match(argument, '^/') >= 0
   let data = s:extract_argument(argument)
   if !has_key(data, 'argument') ||
         \!has_key(data, 'alt') ||
@@ -90,50 +90,47 @@ function! cs#complete(arg, line, cur) abort
     return ''
   elseif data['argument'] == ''
     let cmd = s:get_cmd(':list', 'T', '0')
-    echo ':CS ...'
-    return system(cmd)
+    echo ':CS '.(is_start_with_slash ? '/' : '').'...'
+    let result = system(cmd)
+    if is_start_with_slash
+      " need to match current str in cmdline
+      let result = substitute(result, '^', '/', '')
+      let result = substitute(result, '\zs\n\ze[^$]', '\n/', 'g')
+    endif
+    return result
   elseif stridx(data['argument'], '/') < 0 && !is_empty_complete
-    echo ':CS '.data['argument'].'...'
+    echo ':CS '.(is_start_with_slash ? '/' : '').data['argument'].'...'
     let cmd = s:get_cmd(':list', 'T', '0')
-    return system(cmd)
-    " let result = system(cmd)
-    " return s:multiline_str_startswith(result, data['argument'])
+    let result = system(cmd)
+    if is_start_with_slash
+      " need to match current str in cmdline
+      let result = substitute(result, '^', '/', '')
+      let result = substitute(result, '\zs\n\ze[^$]', '\n/', 'g')
+    endif
+    return result
   elseif is_empty_complete
-    echo ':CS '.data['argument'].'/...'
+    echo ':CS '.(is_start_with_slash ? '/' : '').data['argument'].'/...'
     let cmd = s:get_cmd(data['argument'].'/:list', 'T', '0')
     let result = system(cmd)
 
     " need to match current str in cmdline
-    let result = substitute(result, '^', data['argument'].'/', '')
-    let result = substitute(result, '\zs\n\ze[^$]', '\n'.data['argument'].'/', 'g')
-    echom result
+    let result = substitute(result, '^', (is_start_with_slash ? '/' : '').data['argument'].'/', '')
+    let result = substitute(result, '\zs\n\ze[^$]', '\n'.(is_start_with_slash ? '/' : '').data['argument'].'/', 'g')
     return result
   else
-    echo ':CS '.data['argument'].'...'
+    echo ':CS '.(is_start_with_slash ? '/' : '').data['argument'].'...'
     let cmd_argument = substitute(data['argument'], '[^/]*$', '', '')
     let start = matchstr(data['argument'], '[^/]*$')
     let cmd = s:get_cmd(cmd_argument.':list', 'T', '0')
     let result = system(cmd)
-    " let result = s:multiline_str_startswith(result, start)
 
     " need to match current str in cmdline
-    let result = substitute(result, '^', cmd_argument, '')
-    let result = substitute(result, '\zs\n\ze[^$]', '\n'.cmd_argument, 'g')
+    let result = substitute(result, '^', (is_start_with_slash ? '/' : '').cmd_argument, '')
+    let result = substitute(result, '\zs\n\ze[^$]', '\n'.(is_start_with_slash ? '/' : '').cmd_argument, 'g')
     return result
   endif
   return ''
 :endfunction
-
-function! s:multiline_str_startswith(expr, start) abort
-  " TODO: fix how to include both first line and first string char.
-  let escaped = s:escape_regex(a:start)
-  let match = substitute(a:expr, '^\('.escaped.'\)\@![^\n]*', '', 'g')
-  return substitute(match, '\n\('.escaped.'\)\@![^\n]*', '', 'g')
-:endfunction
-
-function! s:escape_regex(str)
-  return escape(a:str, '^$.*?/\[]')
-endfunction
 
 " Sub functions
 
