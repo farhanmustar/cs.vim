@@ -155,7 +155,8 @@ function! s:get_cheatsheet(argument, options, alt) abort
 :endfunction
 
 function! s:get_cmd(argument, options, alt) abort
-  return join([g:cs_curl_cmd, g:cs_cheatsheet_url.'/'.a:argument.(a:alt == 0 ? '' : '/'.a:alt).'?'.a:options])
+  let url = g:cs_cheatsheet_url.'/'.a:argument.(a:alt == 0 ? '' : '/'.a:alt).'?'.a:options
+  return g:cs_curl_cmd.' "'.url.'"'
 :endfunction
 
 function! s:fill(cmd) abort
