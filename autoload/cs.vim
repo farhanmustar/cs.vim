@@ -103,7 +103,7 @@ function! s:extract_argument(...) abort
 
   " get syntax
   if stridx(argument, '/') < 0
-    let syntax = '/'
+    let syntax = argument
   else
     let syntax = substitute(argument, '/[^ ]*$', '', '')
   endif
@@ -188,9 +188,12 @@ function! s:syntax_map(syntax)
     return g:syntax_map_dict[a:syntax]
   elseif has_key(s:syntax_map_dict, a:syntax)
     return s:syntax_map_dict[a:syntax]
-  else
+  elseif index(getcompletion('', 'syntax'), a:syntax) >= 0
     return a:syntax
+  elseif has_key(g:syntax_map_dict, '/')
+    return g:syntax_map_dict['/']
   endif
+  return s:syntax_map_dict['/']
 :endfunction
 
 function! s:cached_system(cmd) abort
