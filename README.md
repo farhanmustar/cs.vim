@@ -29,3 +29,6 @@
   * ```normal mode``` - automatically add query for the word under the curso and put you in command mode.
   * ```visual mode``` - automatically add query for the word highlighted and put you in command mode.
 * space in query is automatically converted to ```+``` as per cheat.sh specification.
+
+## Demo
+![Demo gif](https://github.com/farhanmustar/cs.vim/wiki/demo.gif)
