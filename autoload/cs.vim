@@ -169,12 +169,42 @@ function! s:get_cmd(argument, options, alt) abort
 function! s:fill(cmd) abort
   setlocal modifiable
   silent normal! gg"_dG
+
+  let b:fill_cache_list = get(b:, 'fill_cache_list', [])
+  let b:fill_cache_data = get(b:, 'fill_cache_data', {})
+
+  if has_key(b:fill_cache_data, a:cmd)
+    call remove(b:fill_cache_list, index(b:fill_cache_list, a:cmd))
+    let b:fill_cache_list += [a:cmd]
+
+    set paste
+    execute ':normal! o'.b:fill_cache_data[a:cmd]
+    set nopaste
+
+    normal! gg"_dd
+    setlocal nomodifiable
+    return
+  endif
+
   silent execute 'read' escape('!'.a:cmd, '%')
   normal! gg"_dd
   if v:shell_error != 0
+    set paste
     execute ':normal! OFail to fetch data, please press r to reload.'
+    set nopaste
     silent normal! G
+  else
+    let b:fill_cache_list += [a:cmd]
+    let b:fill_cache_data[a:cmd] = join(getline(1, '$'), "\n")
   endif
+
+  " cache limit = 5
+  if len(b:fill_cache_list) > 5
+    let del_key = b:fill_cache_list[0]
+    let b:fill_cache_list = b:fill_cache_list[1:]
+    call remove(b:fill_cache_data, del_key)
+  endif
+
   setlocal nomodifiable
 :endfunction
 
