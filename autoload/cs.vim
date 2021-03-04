@@ -36,6 +36,13 @@ function! cs#prev() abort
   call s:get_cheatsheet(b:cs_argument, b:cs_options, b:cs_alt - 1)
 :endfunction
 
+function! cs#reload() abort
+  if !exists('b:cs_buffer')
+    return
+  endif
+  call s:get_cheatsheet(b:cs_argument, b:cs_options, b:cs_alt)
+:endfunction
+
 " Command autocomplete
 
 function! cs#complete(arg, line, cur) abort
@@ -164,6 +171,10 @@ function! s:fill(cmd) abort
   silent normal! gg"_dG
   silent execute 'read' escape('!'.a:cmd, '%')
   normal! gg"_dd
+  if v:shell_error != 0
+    execute ':normal! OFail to fetch data, please press r to reload.'
+    silent normal! G
+  endif
   setlocal nomodifiable
 :endfunction
 
@@ -230,4 +241,5 @@ function! s:maps()
   endif
   nnoremap <silent> <buffer> > :call cs#next()<cr>
   nnoremap <silent> <buffer> < :call cs#prev()<cr>
+  nnoremap <silent> <buffer> r :call cs#reload()<cr>
 :endfunction
