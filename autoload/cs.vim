@@ -18,7 +18,7 @@ function! cs#cheatsheet(...) abort
 
   call s:new_buffer(data['syntax'])
   call s:get_cheatsheet(data['argument'], data['options'], data['alt'])
-:endfunction
+endfunction
 
 " Buffer actions
 
@@ -27,21 +27,21 @@ function! cs#next() abort
     return
   endif
   call s:get_cheatsheet(b:cs_argument, b:cs_options, b:cs_alt + 1)
-:endfunction
+endfunction
 
 function! cs#prev() abort
   if !exists('b:cs_buffer')
     return
   endif
   call s:get_cheatsheet(b:cs_argument, b:cs_options, b:cs_alt - 1)
-:endfunction
+endfunction
 
 function! cs#reload() abort
   if !exists('b:cs_buffer')
     return
   endif
   call s:get_cheatsheet(b:cs_argument, b:cs_options, b:cs_alt)
-:endfunction
+endfunction
 
 " Command autocomplete
 
@@ -98,7 +98,7 @@ function! cs#complete(arg, line, cur) abort
     return result
   endif
   return ''
-:endfunction
+endfunction
 
 " Sub functions
 
@@ -143,13 +143,13 @@ function! s:extract_argument(...) abort
         \ 'syntax': syntax,
         \ 'options': options,
         \}
-:endfunction
+endfunction
 
 function! s:new_buffer(syntax) abort
   execute 'below new'
   setlocal buftype=nofile bufhidden=wipe noswapfile nomodeline
   execute 'set syntax='.a:syntax
-:endfunction
+endfunction
 
 function! s:get_cheatsheet(argument, options, alt) abort
   let bufname = 'CS '.a:argument.' ['.a:alt.']'
@@ -159,12 +159,12 @@ function! s:get_cheatsheet(argument, options, alt) abort
   silent execute 'file' fnameescape(bufname)
   call s:fill(cmd)
   call s:post_setup(a:argument, a:options, a:alt)
-:endfunction
+endfunction
 
 function! s:get_cmd(argument, options, alt) abort
   let url = g:cs_cheatsheet_url.'/'.a:argument.(a:alt == 0 ? '' : '/'.a:alt).'?'.a:options
   return g:cs_curl_cmd.' "'.url.'"'
-:endfunction
+endfunction
 
 function! s:fill(cmd) abort
   setlocal modifiable
@@ -206,7 +206,7 @@ function! s:fill(cmd) abort
   endif
 
   setlocal nomodifiable
-:endfunction
+endfunction
 
 function! s:post_setup(argument, options, alt) abort
   call s:maps()
@@ -216,13 +216,13 @@ function! s:post_setup(argument, options, alt) abort
   let b:cs_argument = a:argument
   let b:cs_options = a:options
   let b:cs_alt = a:alt
-:endfunction
+endfunction
 
 " Helper function
 
 function! s:warn(message)
   echohl WarningMsg | echom a:message | echohl None
-:endfunction
+endfunction
 
 function! s:syntax_map(syntax)
   if has_key(g:syntax_map_dict, a:syntax)
@@ -235,7 +235,7 @@ function! s:syntax_map(syntax)
     return g:syntax_map_dict['/']
   endif
   return s:syntax_map_dict['/']
-:endfunction
+endfunction
 
 function! s:cached_system(cmd) abort
   let s:system_cache_list = get(s:, 'system_cache_list', [])
@@ -261,7 +261,7 @@ function! s:cached_system(cmd) abort
   endif
 
   return result
-:endfunction
+endfunction
 
 " CS binding
 
@@ -272,4 +272,4 @@ function! s:maps()
   nnoremap <silent> <buffer> > :call cs#next()<cr>
   nnoremap <silent> <buffer> < :call cs#prev()<cr>
   nnoremap <silent> <buffer> r :call cs#reload()<cr>
-:endfunction
+endfunction
