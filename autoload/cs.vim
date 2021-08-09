@@ -37,7 +37,7 @@ function! cs#prev() abort
 endfunction
 
 function! cs#reload() abort
-  if !exists('b:cs_buffer')
+  if !exists('b:cs_buffer') || !exists('b:cs_buffer_fail')
     return
   endif
   call s:get_cheatsheet(b:cs_argument, b:cs_options, b:cs_alt)
@@ -183,6 +183,7 @@ function! s:fill(cmd) abort
 
     normal! gg"_dd
     setlocal nomodifiable
+    silent! call remove(b:, 'cs_buffer_fail')
     return
   endif
 
@@ -193,9 +194,11 @@ function! s:fill(cmd) abort
     execute ':normal! OFail to fetch data, please press r to reload.'
     set nopaste
     silent normal! G
+    let b:cs_buffer_fail = 1
   else
     let b:fill_cache_list += [a:cmd]
     let b:fill_cache_data[a:cmd] = join(getline(1, '$'), "\n")
+    silent! call remove(b:, 'cs_buffer_fail')
   endif
 
   " cache limit = 5
