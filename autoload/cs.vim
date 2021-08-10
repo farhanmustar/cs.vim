@@ -16,7 +16,7 @@ let s:syntax_map_dict = {
 function! cs#cheatsheet(...) abort
   let data = call('s:extract_argument', a:000)
 
-  call s:get_cheatsheet(data['syntax'], data['argument'], data['options'], data['alt'])
+  call s:get_cheatsheet(data['syntax'], data['argument'], data['options'], data['alt'], -1)
 endfunction
 
 " Buffer actions
@@ -25,21 +25,21 @@ function! cs#next() abort
   if !exists('b:cs_buffer')
     return
   endif
-  call s:get_cheatsheet(b:cs_syntax, b:cs_argument, b:cs_options, b:cs_alt + 1)
+  call s:get_cheatsheet(b:cs_syntax, b:cs_argument, b:cs_options, b:cs_alt + 1, bufnr())
 endfunction
 
 function! cs#prev() abort
   if !exists('b:cs_buffer')
     return
   endif
-  call s:get_cheatsheet(b:cs_syntax, b:cs_argument, b:cs_options, b:cs_alt - 1)
+  call s:get_cheatsheet(b:cs_syntax, b:cs_argument, b:cs_options, b:cs_alt - 1, bufnr())
 endfunction
 
 function! cs#reload() abort
   if !exists('b:cs_buffer') || !exists('b:cs_buffer_fail')
     return
   endif
-  call s:get_cheatsheet(b:cs_syntax, b:cs_argument, b:cs_options, b:cs_alt)
+  call s:get_cheatsheet(b:cs_syntax, b:cs_argument, b:cs_options, b:cs_alt, bufnr())
 endfunction
 
 " Command autocomplete
@@ -150,26 +150,41 @@ function! s:new_buffer(syntax) abort
   execute 'set syntax='.a:syntax
 endfunction
 
-function! s:get_cheatsheet(syntax, argument, options, alt) abort
+function! s:new_window(buf_nr) abort
+  execute 'below new'
+  buffer a:buf_nr
+endfunction
+
+function! s:get_cheatsheet(syntax, argument, options, alt, buf_nr) abort
   let cmd = s:get_cmd(a:argument, a:options, a:alt)
   " TODO: check cache if available
 
   echo 'CS fetching data... ['.cmd.']'
-  let Callback = function('s:job_callback', [a:syntax, a:argument, a:options, a:alt])
+  let Callback = function('s:job_callback', [a:syntax, a:argument, a:options, a:alt, a:buf_nr])
   call job_start(cmd, {'close_cb': Callback})
 endfunction
 
-function! s:job_callback(syntax, argument, options, alt, channel) abort
+function! s:job_callback(syntax, argument, options, alt, buf_nr, channel) abort
   let response = []
   while ch_status(a:channel, {'part': 'out'}) == 'buffered'
     let response += [ch_read(a:channel)]
   endwhile
-  call s:process_cheatsheet(response, a:syntax, a:argument, a:options, a:alt)
+  call s:process_cheatsheet(response, a:syntax, a:argument, a:options, a:alt, a:buf_nr)
 endfunction
 
-function! s:process_cheatsheet(content, syntax, argument, options, alt) abort
-  " TODO: how to check if buffer already exist for refresh and next prev cmd
-  call s:new_buffer(a:syntax)
+function! s:process_cheatsheet(content, syntax, argument, options, alt, buf_nr) abort
+  let buf_nr = bufnr(a:buf_nr)
+  if buf_nr == -1
+    call s:new_buffer(a:syntax)
+  else
+    let win_id = bufwinid(buf_nr)
+    if win_id == -1
+      s:new_window(buf_nr)
+    else
+      call win_gotoid(win_id)
+    endif
+  endif
+
   silent execute 'file' fnameescape('CS '.a:argument.' ['.a:alt.']')
   call s:fill(a:content)
   call s:post_setup(a:syntax, a:argument, a:options, a:alt)
@@ -202,11 +217,11 @@ endfunction
 
 " Helper function
 
-function! s:warn(message)
+function! s:warn(message) abort
   echohl WarningMsg | echom a:message | echohl None
 endfunction
 
-function! s:syntax_map(syntax)
+function! s:syntax_map(syntax) abort
   if has_key(g:syntax_map_dict, a:syntax)
     return g:syntax_map_dict[a:syntax]
   elseif has_key(s:syntax_map_dict, a:syntax)
@@ -247,7 +262,7 @@ endfunction
 
 " CS binding
 
-function! s:maps()
+function! s:maps() abort
   if exists('b:cs_buffer')
     return
   endif
