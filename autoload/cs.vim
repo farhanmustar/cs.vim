@@ -144,17 +144,6 @@ function! s:extract_argument(...) abort
         \}
 endfunction
 
-function! s:new_buffer(syntax) abort
-  execute 'below new'
-  setlocal buftype=nofile bufhidden=wipe noswapfile nomodeline
-  execute 'set syntax='.a:syntax
-endfunction
-
-function! s:new_window(buf_nr) abort
-  execute 'below new'
-  buffer a:buf_nr
-endfunction
-
 function! s:get_cheatsheet(syntax, argument, options, alt, buf_nr) abort
   let l:cmd = s:get_cmd(a:argument, a:options, a:alt)
 
@@ -203,6 +192,17 @@ function! s:goto_buf(buf_nr, syntax) abort
   else
     call win_gotoid(l:win_id)
   endif
+endfunction
+
+function! s:new_buffer(syntax) abort
+  execute 'below new'
+  setlocal buftype=nofile bufhidden=wipe noswapfile nomodeline
+  execute 'set syntax='.a:syntax
+endfunction
+
+function! s:new_window(buf_nr) abort
+  execute 'below new'
+  buffer a:buf_nr
 endfunction
 
 function! s:save_cache(content, cmd) abort
