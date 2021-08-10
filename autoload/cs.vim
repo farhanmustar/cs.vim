@@ -16,8 +16,7 @@ let s:syntax_map_dict = {
 function! cs#cheatsheet(...) abort
   let data = call('s:extract_argument', a:000)
 
-  call s:new_buffer(data['syntax'])
-  call s:get_cheatsheet(data['argument'], data['options'], data['alt'])
+  call s:get_cheatsheet(data['syntax'], data['argument'], data['options'], data['alt'])
 endfunction
 
 " Buffer actions
@@ -26,21 +25,21 @@ function! cs#next() abort
   if !exists('b:cs_buffer')
     return
   endif
-  call s:get_cheatsheet(b:cs_argument, b:cs_options, b:cs_alt + 1)
+  call s:get_cheatsheet(b:cs_syntax, b:cs_argument, b:cs_options, b:cs_alt + 1)
 endfunction
 
 function! cs#prev() abort
   if !exists('b:cs_buffer')
     return
   endif
-  call s:get_cheatsheet(b:cs_argument, b:cs_options, b:cs_alt - 1)
+  call s:get_cheatsheet(b:cs_syntax, b:cs_argument, b:cs_options, b:cs_alt - 1)
 endfunction
 
 function! cs#reload() abort
   if !exists('b:cs_buffer') || !exists('b:cs_buffer_fail')
     return
   endif
-  call s:get_cheatsheet(b:cs_argument, b:cs_options, b:cs_alt)
+  call s:get_cheatsheet(b:cs_syntax, b:cs_argument, b:cs_options, b:cs_alt)
 endfunction
 
 " Command autocomplete
@@ -151,14 +150,29 @@ function! s:new_buffer(syntax) abort
   execute 'set syntax='.a:syntax
 endfunction
 
-function! s:get_cheatsheet(argument, options, alt) abort
-  let bufname = 'CS '.a:argument.' ['.a:alt.']'
+function! s:get_cheatsheet(syntax, argument, options, alt) abort
   let cmd = s:get_cmd(a:argument, a:options, a:alt)
+  " TODO: check cache if available
 
   echo 'CS fetching data... ['.cmd.']'
-  silent execute 'file' fnameescape(bufname)
-  call s:fill(cmd)
-  call s:post_setup(a:argument, a:options, a:alt)
+  let Callback = function('s:job_callback', [a:syntax, a:argument, a:options, a:alt])
+  call job_start(cmd, {'close_cb': Callback})
+endfunction
+
+function! s:job_callback(syntax, argument, options, alt, channel) abort
+  let response = []
+  while ch_status(a:channel, {'part': 'out'}) == 'buffered'
+    let response += [ch_read(a:channel)]
+  endwhile
+  call s:process_cheatsheet(response, a:syntax, a:argument, a:options, a:alt)
+endfunction
+
+function! s:process_cheatsheet(content, syntax, argument, options, alt) abort
+  " TODO: how to check if buffer already exist for refresh and next prev cmd
+  call s:new_buffer(a:syntax)
+  silent execute 'file' fnameescape('CS '.a:argument.' ['.a:alt.']')
+  call s:fill(a:content)
+  call s:post_setup(a:syntax, a:argument, a:options, a:alt)
 endfunction
 
 function! s:get_cmd(argument, options, alt) abort
@@ -166,56 +180,21 @@ function! s:get_cmd(argument, options, alt) abort
   return g:cs_curl_cmd.' "'.url.'"'
 endfunction
 
-function! s:fill(cmd) abort
+function! s:fill(content) abort
   setlocal modifiable
   silent normal! gg"_dG
 
-  let b:fill_cache_list = get(b:, 'fill_cache_list', [])
-  let b:fill_cache_data = get(b:, 'fill_cache_data', {})
-
-  if has_key(b:fill_cache_data, a:cmd)
-    call remove(b:fill_cache_list, index(b:fill_cache_list, a:cmd))
-    let b:fill_cache_list += [a:cmd]
-
-    set paste
-    execute ':normal! o'.b:fill_cache_data[a:cmd]
-    set nopaste
-
-    normal! gg"_dd
-    setlocal nomodifiable
-    silent! call remove(b:, 'cs_buffer_fail')
-    return
-  endif
-
-  silent execute 'read' escape('!'.a:cmd, '%')
-  normal! gg"_dd
-  if v:shell_error != 0
-    set paste
-    execute ':normal! OFail to fetch data, please press r to reload.'
-    set nopaste
-    silent normal! G
-    let b:cs_buffer_fail = 1
-  else
-    let b:fill_cache_list += [a:cmd]
-    let b:fill_cache_data[a:cmd] = join(getline(1, '$'), "\n")
-    silent! call remove(b:, 'cs_buffer_fail')
-  endif
-
-  " cache limit = 5
-  if len(b:fill_cache_list) > 5
-    let del_key = b:fill_cache_list[0]
-    let b:fill_cache_list = b:fill_cache_list[1:]
-    call remove(b:fill_cache_data, del_key)
-  endif
+  call setline('.', a:content)
 
   setlocal nomodifiable
 endfunction
 
-function! s:post_setup(argument, options, alt) abort
+function! s:post_setup(syntax, argument, options, alt) abort
   call s:maps()
   " mark buffer
   let b:cs_buffer = 1
   " save buffer data
+  let b:cs_syntax = a:syntax
   let b:cs_argument = a:argument
   let b:cs_options = a:options
   let b:cs_alt = a:alt
