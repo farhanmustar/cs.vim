@@ -157,7 +157,13 @@ endfunction
 
 function! s:get_cheatsheet(syntax, argument, options, alt, buf_nr) abort
   let cmd = s:get_cmd(a:argument, a:options, a:alt)
-  " TODO: check cache if available
+
+  let content = s:get_cache(a:buf_nr, cmd)
+  if !empty(content)
+    call s:process_cheatsheet(content, a:syntax, a:argument, a:options, a:alt, a:buf_nr)
+    echo 'CS restore cached data... ['.cmd.']'
+    return
+  endif
 
   echo 'CS fetching data... ['.cmd.']'
   let Callback = function('s:job_callback', [a:syntax, a:argument, a:options, a:alt, a:buf_nr])
@@ -173,21 +179,59 @@ function! s:job_callback(syntax, argument, options, alt, buf_nr, channel) abort
 endfunction
 
 function! s:process_cheatsheet(content, syntax, argument, options, alt, buf_nr) abort
+  let cmd = s:get_cmd(a:argument, a:options, a:alt)
+
+  call s:goto_buf(a:buf_nr, a:syntax)
+  silent execute 'file' fnameescape('CS '.a:argument.' ['.a:alt.']')
+  call s:save_cache(a:content, cmd)
+  call s:fill(a:content)
+  call s:post_setup(a:syntax, a:argument, a:options, a:alt)
+endfunction
+
+function! s:goto_buf(buf_nr, syntax) abort
   let buf_nr = bufnr(a:buf_nr)
   if buf_nr == -1
     call s:new_buffer(a:syntax)
-  else
-    let win_id = bufwinid(buf_nr)
-    if win_id == -1
-      s:new_window(buf_nr)
-    else
-      call win_gotoid(win_id)
-    endif
+    return
+  elseif buf_nr == bufnr()
+    return
   endif
 
-  silent execute 'file' fnameescape('CS '.a:argument.' ['.a:alt.']')
-  call s:fill(a:content)
-  call s:post_setup(a:syntax, a:argument, a:options, a:alt)
+  let win_id = bufwinid(buf_nr)
+  if win_id == -1
+    s:new_window(buf_nr)
+  else
+    call win_gotoid(win_id)
+  endif
+endfunction
+
+function! s:save_cache(content, cmd) abort
+  if empty(a:content)
+    return
+  endif
+  let b:fill_cache_list = get(b:, 'fill_cache_list', [])
+  let b:fill_cache_content = get(b:, 'fill_cache_content', {})
+
+  if index(b:fill_cache_list, a:cmd) >= 0
+    call remove(b:fill_cache_list, index(b:fill_cache_list, a:cmd))
+  endif
+  let b:fill_cache_list += [a:cmd]
+  let b:fill_cache_content[a:cmd] = a:content
+
+  " cache limit = 5
+  if len(b:fill_cache_list) > 5
+    let del_key = b:fill_cache_list[0]
+    let b:fill_cache_list = b:fill_cache_list[1:]
+    call remove(b:fill_cache_content, del_key)
+  endif
+endfunction
+
+function! s:get_cache(buf_nr, cmd) abort
+  let cache_content = getbufvar(a:buf_nr, 'fill_cache_content', {})
+  if !has_key(cache_content, a:cmd)
+    return []
+  endif
+  return cache_content[a:cmd]
 endfunction
 
 function! s:get_cmd(argument, options, alt) abort
@@ -199,7 +243,14 @@ function! s:fill(content) abort
   setlocal modifiable
   silent normal! gg"_dG
 
-  call setline('.', a:content)
+  if empty(a:content)
+    execute ':normal! IFail to fetch data, please press r to reload.'
+    silent normal! gg
+    let b:cs_buffer_fail = 1
+  else
+    call setline('.', a:content)
+    silent! call remove(b:, 'cs_buffer_fail')
+  endif
 
   setlocal nomodifiable
 endfunction
