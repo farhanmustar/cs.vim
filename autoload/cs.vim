@@ -196,7 +196,7 @@ endfunction
 
 function! s:new_buffer(syntax) abort
   execute 'below new'
-  setlocal buftype=nofile bufhidden=wipe noswapfile nomodeline
+  setlocal buftype=nofile bufhidden=wipe noswapfile nomodeline nobuflisted
   execute 'set syntax='.a:syntax
 endfunction
 
