@@ -170,11 +170,15 @@ endfunction
 function! s:process_cheatsheet(content, syntax, argument, options, alt, buf_nr) abort
   let l:cmd = s:get_cmd(a:argument, a:options, a:alt)
 
+  let l:cur_winid = win_getid()
+
   call s:goto_buf(a:buf_nr, a:syntax)
   silent execute 'file' fnameescape('CS '.a:argument.' ['.a:alt.']')
   call s:save_cache(a:content, l:cmd)
   call s:fill(a:content)
   call s:post_setup(a:syntax, a:argument, a:options, a:alt)
+
+  call win_gotoid(l:cur_winid)
 endfunction
 
 function! s:goto_buf(buf_nr, syntax) abort
