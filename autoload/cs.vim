@@ -155,8 +155,15 @@ function! s:get_cheatsheet(syntax, argument, options, alt, buf_nr) abort
   endif
 
   echo 'CS fetching data... ['.l:cmd.']'
-  let Callback = function('s:job_callback', [a:syntax, a:argument, a:options, a:alt, a:buf_nr])
-  call job_start(l:cmd, {'close_cb': Callback})
+  if has('job')
+    let Callback = function('s:job_callback', [a:syntax, a:argument, a:options, a:alt, a:buf_nr])
+    call job_start(l:cmd, {'close_cb': Callback})
+  elseif has('nvim')
+    let Callback = function('s:job_callback_nvim', [a:syntax, a:argument, a:options, a:alt, a:buf_nr])
+    call jobstart(l:cmd, {'on_stdout': Callback, 'stdout_buffered': 1})
+  else
+    call s:warn('CS.vim require job feature.')
+  endif
 endfunction
 
 function! s:job_callback(syntax, argument, options, alt, buf_nr, channel) abort
@@ -165,6 +172,10 @@ function! s:job_callback(syntax, argument, options, alt, buf_nr, channel) abort
     let l:response += [ch_read(a:channel)]
   endwhile
   call s:process_cheatsheet(l:response, a:syntax, a:argument, a:options, a:alt, a:buf_nr)
+endfunction
+
+function! s:job_callback_nvim(syntax, argument, options, alt, buf_nr, id, data, event) abort
+  call s:process_cheatsheet(a:data, a:syntax, a:argument, a:options, a:alt, a:buf_nr)
 endfunction
 
 function! s:process_cheatsheet(content, syntax, argument, options, alt, buf_nr) abort
