@@ -1,9 +1,9 @@
-let g:syntax_map_dict = get(g:, 'syntax_map_dict', {})
-let g:cs_curl_max_time = get(g:, 'cs_curl_max_time', 10)
+let g:cs_syntax_map_dict = get(g:, 'cs_syntax_map_dict', {})
+let g:cs_curl_max_time = get(g:, 'cs_curl_max_time', 30)
 let g:cs_curl_cmd = get(g:, 'cs_curl_cmd', 'curl --silent --max-time '.g:cs_curl_max_time)
 let g:cs_cheatsheet_url = get(g:, 'cs_cheatsheet_url', 'https://cht.sh')
 
-let s:syntax_map_dict = {
+let s:cs_syntax_map_dict = {
 \   '/': 'markdown',
 \   'git': 'markdown',
 \   'jquery': 'javascript',
@@ -288,16 +288,16 @@ function! s:warn(message) abort
 endfunction
 
 function! s:syntax_map(syntax) abort
-  if has_key(g:syntax_map_dict, a:syntax)
-    return g:syntax_map_dict[a:syntax]
-  elseif has_key(s:syntax_map_dict, a:syntax)
-    return s:syntax_map_dict[a:syntax]
+  if has_key(g:cs_syntax_map_dict, a:syntax)
+    return g:cs_syntax_map_dict[a:syntax]
+  elseif has_key(s:cs_syntax_map_dict, a:syntax)
+    return s:cs_syntax_map_dict[a:syntax]
   elseif index(getcompletion('', 'syntax'), a:syntax) >= 0
     return a:syntax
-  elseif has_key(g:syntax_map_dict, '/')
-    return g:syntax_map_dict['/']
+  elseif has_key(g:cs_syntax_map_dict, '/')
+    return g:cs_syntax_map_dict['/']
   endif
-  return s:syntax_map_dict['/']
+  return s:cs_syntax_map_dict['/']
 endfunction
 
 function! s:cached_system(cmd) abort
