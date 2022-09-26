@@ -1,0 +1,136 @@
+*CS.txt*                                                             Version 1.0
+
+==============================================================================
+Introduction                                                   *CS-introduction*
+
+CS.vim is a vim plugin to query information from curl friendly
+https://cheat.sh webpage. Please visit https://cheat.sh/:intro to learn more.
+Alternatively you can try the following command to read about them: >
+
+    :CS :intro
+
+Note:
+
+The cheat.sh readme is also a good reading source to learn them.
+https://github.com/chubin/cheat.sh
+
+==============================================================================
+Requirement                                                     *CS-requirement*
+
+This plugin make use of |curl| application to query information from vim.
+Make sure curl exist in your path: >
+
+    :echo executable('curl')
+
+==============================================================================
+Usage                                                              *CS* *CS-usage*
+
+CS.vim introduce |CS| command with the following accepted parameters.
+
+For command line application: >
+
+    :CS curl
+
+The application name is enough to view the main cheat sheet.
+
+For programming languages: >
+
+    :CS rust/:learn
+
+The programming language and a slash (`rust/`) prefix are needed before any query.
+For this case `:learn` is the query to view main cheat sheet for rust
+programming language.
+
+Query example: >
+
+    :CS lua/list file in path
+
+------------------------------------------------------------------------------
+Keyboard Shortcut                                         *CS-keyboard-shortcut*
+
+Inside the CS.vim buffer these are the shortcut available:
+
+  '>' - Query for next answer.
+  '<' - Query for previous answer.
+
+https://cheat.sh may provide result from https://stackoverflow.com, therefore
+this shortcut will help user to browse for the next answer.
+
+------------------------------------------------------------------------------
+Completion                                                       *CS-completion*
+
+The |CS| command provide completion by querying available command
+from https://cheat.sh. Depending on your network connection or 
+the server response time, the tab completion might response poorly.
+
+Example, you can press tab right after |CS| command to see all available 
+cheat sheet.
+
+------------------------------------------------------------------------------
+External Reference                                                     *CS-help*
+
+Under the hood CS just pass the parameters given with some simple URL handling
+for example replacing space character to '+' during query.
+Therefore it is recommended to read the original query help page 
+available here: >
+
+    :CS :help
+
+==============================================================================
+Configuration                                                 *CS-configuration*
+
+                                                          *g:cs_syntax_map_dict*
+g:cs_syntax_map_dict~
+Default: >
+
+    let g:cs_syntax_map_dict = {
+    \   '/': 'markdown',
+    \   'git': 'markdown',
+    \   'jquery': 'javascript',
+    \   'js': 'javascript',
+    \   'vimscript': 'vim',
+    \}
+
+CS.vim use the query as a hint to set the |CS| buffer syntax. This variable
+will be use to directly map from query to vim syntax.
+
+                                                            *g:cs_curl_max_time*
+g:cs_curl_max_time~
+Default: >
+
+    let g:cs_curl_max_time = 30
+
+This is the timeout parameter in second that will be passed to the curl
+command. If |g:cs_curl_cmd| is set, this parameter will not be used.
+
+                                                                 *g:cs_curl_cmd*
+g:cs_curl_cmd~
+Default: >
+
+    let g:cs_curl_cmd = 'curl --silent --max-time '.g:cs_curl_max_time
+
+The actual |curl| command used to query to https://cheat.sh.
+
+                                                           *g:cs_cheatsheet_url*
+g:cs_cheatsheet_url~
+Default: >
+
+    let g:cs_cheatsheet_url = 'https://cht.sh'
+
+The target URL used to query for cheat sheet.
+
+------------------------------------------------------------------------------
+Mapping                                                             *CS-mapping*
+
+                                                               *<Plug>(CS-Promp)*
+<Plug>(CS-Promp)
+
+Simple build-in mapping to auto prefix the |CS| command with buffer syntax or
+filetype.
+
+Example use in .vimrc: >
+    
+    nmap <leader>cs <Plug>(CS-Promp)
+    vmap <leader>cs <Plug>(CS-Promp)
+
+Set <leader>cs mappings to go into command mode with |CS| prefix.

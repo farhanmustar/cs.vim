@@ -1,4 +1,4 @@
-# cs.vim
+# CS.vim
 * Vim plugin to query cheat sheet from [cheat.sh](https://cheat.sh/). This plugin is an alternative to [cheat.sh-vim](https://github.com/dbeniamine/cheat.sh-vim).
 * Do not forget to view ```cheat.sh``` [intro page](https://cheat.sh/:intro) to learn more about it.
 * This plugin make use of ```curl``` application to query information directly from vim. Makesure curl is executable by vim.
